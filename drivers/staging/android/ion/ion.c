@@ -207,6 +207,7 @@ struct ion_dma_buf_attachment {
 	struct device *dev;
 	struct sg_table *table;
 	struct list_head list;
+	enum dma_data_direction dir;
 };
 
 static int ion_dma_buf_attach(struct dma_buf *dmabuf,
@@ -228,6 +229,7 @@ static int ion_dma_buf_attach(struct dma_buf *dmabuf,
 
 	a->table = table;
 	a->dev = attachment->dev;
+	a->dir = DMA_NONE;
 	INIT_LIST_HEAD(&a->list);
 
 	attachment->priv = a;
@@ -244,6 +246,18 @@ static void ion_dma_buf_detatch(struct dma_buf *dmabuf,
 {
 	struct ion_dma_buf_attachment *a = attachment->priv;
 	struct ion_buffer *buffer = dmabuf->priv;
+	struct sg_table *table;
+
+	if (!a)
+		return;
+
+	table = a->table;
+	if (table) {
+		if (a->dir != DMA_NONE)
+			dma_unmap_sg(attachment->dev, table->sgl, table->nents,
+				     a->dir);
+		sg_free_table(table);
+	}
 
 	mutex_lock(&buffer->lock);
 	list_del(&a->list);
@@ -251,6 +265,7 @@ static void ion_dma_buf_detatch(struct dma_buf *dmabuf,
 	free_duped_table(a->table);
 
 	kfree(a);
+	attachment->priv = NULL;
 }
 
 static struct sg_table *ion_map_dma_buf(struct dma_buf_attachment *attachment,
@@ -259,12 +274,24 @@ static struct sg_table *ion_map_dma_buf(struct dma_buf_attachment *attachment,
 	struct ion_dma_buf_attachment *a = attachment->priv;
 	struct sg_table *table;
 
+	if (WARN_ON(direction == DMA_NONE || !a))
+		return ERR_PTR(-EINVAL);
+
+	if (a->dir == direction)
+		return a->table;
+
+	if (WARN_ON(a->dir != DMA_NONE))
+		return ERR_PTR(-EBUSY);
+
 	table = a->table;
-
-	if (!dma_map_sg(attachment->dev, table->sgl, table->nents,
-			direction))
-		return ERR_PTR(-ENOMEM);
-
+	if (!IS_ERR(table)) {
+		if (!dma_map_sg(attachment->dev, table->sgl, table->nents,
+				direction)) {
+			table = ERR_PTR(-ENOMEM);
+		} else {
+			a->dir = direction;
+		}
+	}
 	return table;
 }
 
@@ -272,7 +299,6 @@ static void ion_unmap_dma_buf(struct dma_buf_attachment *attachment,
 			      struct sg_table *table,
 			      enum dma_data_direction direction)
 {
-	dma_unmap_sg(attachment->dev, table->sgl, table->nents, direction);
 }
 
 static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
