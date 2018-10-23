@@ -10,6 +10,8 @@
 #define __ASM_SYSREG_H
 
 #include <linux/bits.h>
+#include <linux/const.h>
+#include <asm/compiler.h>
 #include <linux/stringify.h>
 
 /*
