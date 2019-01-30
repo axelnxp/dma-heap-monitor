@@ -488,6 +488,7 @@ static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	 * assume the state was never reached and the exit latency is 0.
 	 */
 
+#if 0
 	if (data->tick_wakeup && data->next_timer_us > TICK_USEC) {
 		/*
 		 * The nohz code said that there wouldn't be any events within
@@ -499,7 +500,9 @@ static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 		 * duration predictor do a better job next time.
 		 */
 		measured_us = 9 * MAX_INTERESTING / 10;
-	} else if ((drv->states[last_idx].flags & CPUIDLE_FLAG_POLLING) &&
+	} else
+#endif
+	if ((drv->states[last_idx].flags & CPUIDLE_FLAG_POLLING) &&
 		   dev->poll_time_limit) {
 		/*
 		 * The CPU exited the "polling" state due to a time limit, so
