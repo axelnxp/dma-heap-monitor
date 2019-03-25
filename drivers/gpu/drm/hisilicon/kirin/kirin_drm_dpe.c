@@ -619,7 +619,7 @@ static void dpe_init(struct dpe_hw_ctx *ctx,
 	dpe_ovl_init(ctx, mode->hdisplay, mode->vdisplay);
 	dpe_mctl_unlock(ctx);
 
-	dpe_enable_ldi(ctx);
+//	dpe_enable_ldi(ctx);
 
 	ctx->hdisplay = mode->hdisplay;
 	ctx->vdisplay = mode->vdisplay;
