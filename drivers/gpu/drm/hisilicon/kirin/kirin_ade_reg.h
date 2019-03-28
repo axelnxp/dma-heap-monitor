@@ -83,6 +83,7 @@
 #define VSIZE_OFST			20
 #define LDI_INT_EN			0x741C
 #define FRAME_END_INT_EN_OFST		1
+#define UNDERFLOW_INT_EN_OFST		2
 #define LDI_CTRL			0x7420
 #define BPP_OFST			3
 #define DATA_GATE_EN			BIT(2)
@@ -91,6 +92,11 @@
 #define LDI_INT_CLR			0x742C
 #define LDI_WORK_MODE			0x7430
 #define LDI_HDMI_DSI_GT			0x7434
+
+/*
+ *BIT_LDI_UNFLOW
+ */
+#define BIT_LDI_UNFLOW         BIT(2)
 
 /*
  * ADE media bus service regs
