@@ -13,7 +13,6 @@
 void init_heap_helper_buffer(struct heap_helper_buffer *buffer,
 			     void (*free)(struct heap_helper_buffer *))
 {
-	buffer->private_flags = 0;
 	buffer->priv_virt = NULL;
 	mutex_init(&buffer->lock);
 	buffer->vmap_cnt = 0;

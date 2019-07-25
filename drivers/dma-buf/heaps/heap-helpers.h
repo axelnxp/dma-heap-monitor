@@ -18,7 +18,6 @@ struct heap_helper_buffer {
 	size_t size;
 	unsigned long flags;
 
-	unsigned long private_flags;
 	void *priv_virt;
 	struct mutex lock;
 	int vmap_cnt;
