@@ -31,9 +31,9 @@ struct dma_buf *heap_helper_export_dmabuf(
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 
 	exp_info.ops = &heap_helper_ops;
-	exp_info.size = helper_buffer->heap_buffer.size;
+	exp_info.size = helper_buffer->size;
 	exp_info.flags = fd_flags;
-	exp_info.priv = &helper_buffer->heap_buffer;
+	exp_info.priv = helper_buffer;
 
 	return dma_buf_export(&exp_info);
 }
@@ -49,10 +49,8 @@ static void *dma_heap_map_kernel(struct heap_helper_buffer *buffer)
 	return vaddr;
 }
 
-static void dma_heap_buffer_destroy(struct dma_heap_buffer *heap_buffer)
+static void dma_heap_buffer_destroy(struct heap_helper_buffer *buffer)
 {
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
-
 	if (buffer->vmap_cnt > 0) {
 		WARN("%s: buffer still mapped in the kernel\n",
 			     __func__);
@@ -62,9 +60,8 @@ static void dma_heap_buffer_destroy(struct dma_heap_buffer *heap_buffer)
 	buffer->free(buffer);
 }
 
-static void *dma_heap_buffer_vmap_get(struct dma_heap_buffer *heap_buffer)
+static void *dma_heap_buffer_vmap_get(struct heap_helper_buffer *buffer)
 {
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
 	void *vaddr;
 
 	if (buffer->vmap_cnt) {
@@ -82,10 +79,8 @@ static void *dma_heap_buffer_vmap_get(struct dma_heap_buffer *heap_buffer)
 	return vaddr;
 }
 
-static void dma_heap_buffer_vmap_put(struct dma_heap_buffer *heap_buffer)
+static void dma_heap_buffer_vmap_put(struct heap_helper_buffer *buffer)
 {
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
-
 	if (!--buffer->vmap_cnt) {
 		vunmap(buffer->vaddr);
 		buffer->vaddr = NULL;
@@ -102,8 +97,7 @@ static int dma_heap_attach(struct dma_buf *dmabuf,
 			      struct dma_buf_attachment *attachment)
 {
 	struct dma_heaps_attachment *a;
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 	int ret;
 
 	a = kzalloc(sizeof(*a), GFP_KERNEL);
@@ -135,8 +129,7 @@ static void dma_heap_detach(struct dma_buf *dmabuf,
 				struct dma_buf_attachment *attachment)
 {
 	struct dma_heaps_attachment *a = attachment->priv;
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 
 	mutex_lock(&buffer->lock);
 	list_del(&a->list);
@@ -185,8 +178,7 @@ static const struct vm_operations_struct dma_heap_vm_ops = {
 
 static int dma_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 {
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 
 	if ((vma->vm_flags & (VM_SHARED | VM_MAYSHARE)) == 0)
 		return -EINVAL;
@@ -199,7 +191,7 @@ static int dma_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 
 static void dma_heap_dma_buf_release(struct dma_buf *dmabuf)
 {
-	struct dma_heap_buffer *buffer = dmabuf->priv;
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 
 	dma_heap_buffer_destroy(buffer);
 }
@@ -207,8 +199,7 @@ static void dma_heap_dma_buf_release(struct dma_buf *dmabuf)
 static int dma_heap_dma_buf_begin_cpu_access(struct dma_buf *dmabuf,
 					enum dma_data_direction direction)
 {
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 	struct dma_heaps_attachment *a;
 	int ret = 0;
 
@@ -225,8 +216,7 @@ static int dma_heap_dma_buf_begin_cpu_access(struct dma_buf *dmabuf,
 static int dma_heap_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 				      enum dma_data_direction direction)
 {
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 	struct dma_heaps_attachment *a;
 
 	mutex_lock(&buffer->lock);
@@ -241,12 +231,11 @@ static int dma_heap_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 
 static void *dma_heap_dma_buf_vmap(struct dma_buf *dmabuf)
 {
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 	void *vaddr;
 
 	mutex_lock(&buffer->lock);
-	vaddr = dma_heap_buffer_vmap_get(heap_buffer);
+	vaddr = dma_heap_buffer_vmap_get(buffer);
 	mutex_unlock(&buffer->lock);
 
 	return vaddr;
@@ -254,11 +243,10 @@ static void *dma_heap_dma_buf_vmap(struct dma_buf *dmabuf)
 
 static void dma_heap_dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
 {
-	struct dma_heap_buffer *heap_buffer = dmabuf->priv;
-	struct heap_helper_buffer *buffer = to_helper_buffer(heap_buffer);
+	struct heap_helper_buffer *buffer = dmabuf->priv;
 
 	mutex_lock(&buffer->lock);
-	dma_heap_buffer_vmap_put(heap_buffer);
+	dma_heap_buffer_vmap_put(buffer);
 	mutex_unlock(&buffer->lock);
 }
 

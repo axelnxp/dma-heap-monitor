@@ -25,7 +25,7 @@ struct cma_heap {
 
 static void cma_heap_free(struct heap_helper_buffer *buffer)
 {
-	struct cma_heap *cma_heap = dma_heap_get_data(buffer->heap_buffer.heap);
+	struct cma_heap *cma_heap = dma_heap_get_data(buffer->heap);
 	unsigned long nr_pages = buffer->pagecount;
 	struct page *cma_pages = buffer->priv_virt;
 
@@ -60,9 +60,9 @@ static int cma_heap_allocate(struct dma_heap *heap,
 		return -ENOMEM;
 
 	init_heap_helper_buffer(helper_buffer, cma_heap_free);
-	helper_buffer->heap_buffer.flags = heap_flags;
-	helper_buffer->heap_buffer.heap = heap;
-	helper_buffer->heap_buffer.size = len;
+	helper_buffer->flags = heap_flags;
+	helper_buffer->heap = heap;
+	helper_buffer->size = len;
 
 	cma_pages = cma_alloc(cma_heap->cma, nr_pages, align, false);
 	if (!cma_pages)
@@ -106,7 +106,7 @@ static int cma_heap_allocate(struct dma_heap *heap,
 		goto free_pages;
 	}
 
-	helper_buffer->heap_buffer.dmabuf = dmabuf;
+	helper_buffer->dmabuf = dmabuf;
 	helper_buffer->priv_virt = cma_pages;
 
 	ret = dma_buf_fd(dmabuf, fd_flags);

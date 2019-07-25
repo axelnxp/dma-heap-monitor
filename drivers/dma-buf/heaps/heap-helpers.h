@@ -12,22 +12,11 @@
 #include <linux/dma-heap.h>
 #include <linux/list.h>
 
-/**
- * struct dma_heap_buffer - metadata for a particular buffer
- * @heap:		back pointer to the heap the buffer came from
- * @dmabuf:		backing dma-buf for this buffer
- * @size:		size of the buffer
- * @flags:		buffer specific flags
- */
-struct dma_heap_buffer {
+struct heap_helper_buffer {
 	struct dma_heap *heap;
 	struct dma_buf *dmabuf;
 	size_t size;
 	unsigned long flags;
-};
-
-struct heap_helper_buffer {
-	struct dma_heap_buffer heap_buffer;
 
 	unsigned long private_flags;
 	void *priv_virt;
@@ -40,12 +29,6 @@ struct heap_helper_buffer {
 
 	void (*free)(struct heap_helper_buffer *buffer);
 };
-
-static inline struct heap_helper_buffer *to_helper_buffer(
-						struct dma_heap_buffer *h)
-{
-	return container_of(h, struct heap_helper_buffer, heap_buffer);
-}
 
 void init_heap_helper_buffer(struct heap_helper_buffer *buffer,
 				 void (*free)(struct heap_helper_buffer *));

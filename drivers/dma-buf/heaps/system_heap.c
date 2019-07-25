@@ -45,9 +45,9 @@ static int system_heap_allocate(struct dma_heap *heap,
 		return -ENOMEM;
 
 	init_heap_helper_buffer(helper_buffer, system_heap_free);
-	helper_buffer->heap_buffer.flags = heap_flags;
-	helper_buffer->heap_buffer.heap = heap;
-	helper_buffer->heap_buffer.size = len;
+	helper_buffer->flags = heap_flags;
+	helper_buffer->heap = heap;
+	helper_buffer->size = len;
 
 	helper_buffer->pagecount = len / PAGE_SIZE;
 	helper_buffer->pages = kmalloc_array(helper_buffer->pagecount,
@@ -78,7 +78,7 @@ static int system_heap_allocate(struct dma_heap *heap,
 		goto err1;
 	}
 
-	helper_buffer->heap_buffer.dmabuf = dmabuf;
+	helper_buffer->dmabuf = dmabuf;
 
 	ret = dma_buf_fd(dmabuf, fd_flags);
 	if (ret < 0) {
