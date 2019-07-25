@@ -18,9 +18,7 @@
 
 #include "heap-helpers.h"
 
-struct system_heap {
-	struct dma_heap *heap;
-} sys_heap;
+struct dma_heap *sys_heap;
 
 static void system_heap_free(struct heap_helper_buffer *buffer)
 {
@@ -112,11 +110,11 @@ static int system_heap_create(void)
 
 	exp_info.name = "system_heap";
 	exp_info.ops = &system_heap_ops;
-	exp_info.priv = &sys_heap;
+	exp_info.priv = NULL;
 
-	sys_heap.heap = dma_heap_add(&exp_info);
-	if (IS_ERR(sys_heap.heap))
-		ret = PTR_ERR(sys_heap.heap);
+	sys_heap = dma_heap_add(&exp_info);
+	if (IS_ERR(sys_heap))
+		ret = PTR_ERR(sys_heap);
 
 	return ret;
 }
