@@ -23,16 +23,15 @@ void init_heap_helper_buffer(struct heap_helper_buffer *buffer,
 	buffer->free = free;
 }
 
-struct dma_buf *heap_helper_export_dmabuf(
-				struct heap_helper_buffer *helper_buffer,
-				int fd_flags)
+struct dma_buf *heap_helper_export_dmabuf(struct heap_helper_buffer *buffer,
+					  int fd_flags)
 {
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 
 	exp_info.ops = &heap_helper_ops;
-	exp_info.size = helper_buffer->size;
+	exp_info.size = buffer->size;
 	exp_info.flags = fd_flags;
-	exp_info.priv = helper_buffer;
+	exp_info.priv = buffer;
 
 	return dma_buf_export(&exp_info);
 }
