@@ -127,7 +127,7 @@ free_buf:
 	return ret;
 }
 
-static struct dma_heap_ops cma_heap_ops = {
+static const struct dma_heap_ops cma_heap_ops = {
 	.allocate = cma_heap_allocate,
 };
 

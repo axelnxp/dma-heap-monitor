@@ -37,7 +37,7 @@ struct dma_heap_ops {
  */
 struct dma_heap_export_info {
 	const char *name;
-	struct dma_heap_ops *ops;
+	const struct dma_heap_ops *ops;
 	void *priv;
 };
 

@@ -35,7 +35,7 @@
  */
 struct dma_heap {
 	const char *name;
-	struct dma_heap_ops *ops;
+	const struct dma_heap_ops *ops;
 	void *priv;
 	unsigned int minor;
 	dev_t heap_devt;

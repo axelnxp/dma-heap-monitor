@@ -99,7 +99,7 @@ err0:
 	return -ENOMEM;
 }
 
-static struct dma_heap_ops system_heap_ops = {
+static const struct dma_heap_ops system_heap_ops = {
 	.allocate = system_heap_allocate,
 };
 
