@@ -19,6 +19,9 @@
 
 struct cma;
 
+extern unsigned long cma_get_free_size(const struct cma *cma);
+extern unsigned long cma_get_largest_free_buf(const struct cma *cma);
+
 extern unsigned long totalcma_pages;
 extern phys_addr_t cma_get_base(const struct cma *cma);
 extern unsigned long cma_get_size(const struct cma *cma);

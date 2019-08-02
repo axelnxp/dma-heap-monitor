@@ -15,13 +15,22 @@
 #include <linux/cma.h>
 #include <linux/scatterlist.h>
 #include <linux/highmem.h>
+#include <linux/seq_file.h>
 
 #include "heap-helpers.h"
 
 struct cma_heap {
 	struct dma_heap *heap;
 	struct cma *cma;
+
+	size_t heap_size;
+	size_t free_size;
+	size_t allocated_size;
+	size_t allocated_peak;
+	size_t largest_free_buf;
 };
+
+#define to_cma_heap(x) container_of(x, struct cma_heap, heap)
 
 static void cma_heap_free(struct heap_helper_buffer *buffer)
 {
@@ -131,6 +140,45 @@ static const struct dma_heap_ops cma_heap_ops = {
 	.allocate = cma_heap_allocate,
 };
 
+static void update_cma_heap_info(struct dma_heap* heap)
+{
+	struct cma_heap *cma_heap;
+	cma_heap = to_cma_heap(heap);
+
+	cma_heap->heap_size = cma_get_size(cma_heap->cma);
+	cma_heap->free_size = cma_get_free_size(cma_heap->cma);
+	cma_heap->allocated_size = cma_heap->heap_size - cma_heap->free_size;
+	if(cma_heap->allocated_size > cma_heap->allocated_peak) cma_heap->allocated_peak = cma_heap->allocated_size;
+	cma_heap->largest_free_buf = cma_get_largest_free_buf(cma_heap->cma);
+}
+
+static int dma_cma_heap_debug_show(struct dma_heap *heap, struct seq_file *s, void *unused)
+{
+	struct cma_heap *cma_heap;
+	size_t heap_frag;
+
+	cma_heap = to_cma_heap(heap);
+
+	seq_puts(s, "\n----- DMA CMA HEAP DEBUG -----\n");
+	if(heap->type == DMA_HEAP_TYPE_CMA) {
+		update_cma_heap_info(heap);
+
+		heap_frag = ((cma_heap->free_size - cma_heap->largest_free_buf) * 100) / cma_heap->free_size;
+
+		seq_printf(s, "%19s %19zu\n", "heap size", cma_heap->heap_size);
+		seq_printf(s, "%19s %19zu\n", "free size", cma_heap->free_size);
+		seq_printf(s, "%19s %19zu\n", "allocated size", cma_heap->allocated_size);
+		seq_printf(s, "%19s %19zu\n", "allocated peak", cma_heap->allocated_peak);
+		seq_printf(s, "%19s %19zu\n", "largest free buffer", cma_heap->largest_free_buf);
+		seq_printf(s, "%19s %19zu\n", "heap fragmentation", heap_frag);
+	}
+	else {
+		pr_err("%s: Invalid heap type for debug: %d\n", __func__, heap->type);
+	}
+	seq_puts(s, "\n");
+	return 0;
+}
+
 static int __add_cma_heap(struct cma *cma, void *data)
 {
 	struct cma_heap *cma_heap;
@@ -152,6 +200,10 @@ static int __add_cma_heap(struct cma *cma, void *data)
 		kfree(cma_heap);
 		return ret;
 	}
+
+	cma_heap->heap.type = DMA_HEAP_TYPE_CMA;
+	cma_heap->heap.debug_show = dma_cma_heap_debug_show;
+	update_cma_heap_info(cma_heap->heap);
 
 	return 0;
 }

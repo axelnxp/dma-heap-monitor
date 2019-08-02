@@ -41,6 +41,16 @@ struct dma_heap_allocation_data {
 	__u32 reserved1;
 };
 
+/**
+ * enum dma_heap_type - list of all possible types of dma heaps
+ * @DMA_HEAP_TYPE_SYSTEM:	 memory allocated via vmalloc
+ * @DMA_HEAP_TYPE_CMA:		 memory allocated via CMA API
+ */
+enum dma_heap_type {
+	DMA_HEAP_TYPE_CMA,
+	DMA_HEAP_TYPE_SYSTEM,
+};
+
 #define DMA_HEAP_IOC_MAGIC		'H'
 
 /**

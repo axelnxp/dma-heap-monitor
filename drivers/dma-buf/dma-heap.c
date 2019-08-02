@@ -17,6 +17,7 @@
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/dma-heap.h>
+#include <linux/seq_file.h>
 #include <uapi/linux/dma-heap.h>
 
 #define DEVNAME "dma_heap"
@@ -40,6 +41,10 @@ struct dma_heap {
 	unsigned int minor;
 	dev_t heap_devt;
 	struct cdev heap_cdev;
+
+	enum dma_heap_type type;
+	struct dentry *debug_root;
+	int (*debug_show)(struct dma_heap *heap, struct seq_file *, void *);
 };
 
 static dev_t dma_heap_devt;
@@ -148,6 +153,27 @@ static const struct file_operations dma_heap_fops = {
 #endif
 };
 
+static int dma_heap_debug_show(struct seq_file *s, void *unused)
+{
+	struct dma_heap *heap = s->private;
+	if(heap->debug_show)
+		heap->debug_show(heap, s, unused);
+
+	return 0;
+}
+
+static int dma_heap_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dma_heap_debug_show, inode->i_private);
+}
+
+static const struct file_operations dma_heap_debug_fops = {
+	.open        = dma_heap_debug_open,
+	.read        = seq_read,
+	.llseek      = seq_lseek,
+	.release     = single_release,
+};
+
 /**
  * dma_heap_get_data() - get per-subdriver data for the heap
  * @heap: DMA-Heap to retrieve private data for
@@ -214,6 +240,21 @@ struct dma_heap *dma_heap_add(const struct dma_heap_export_info *exp_info)
 		err_ret = (struct dma_heap *)dev_ret;
 		goto err2;
 	}
+
+	heap->debug_root = debugfs_create_dir("dma-heap", NULL);
+	if (!heap->debug_root) {
+		pr_err("dma-heap: failed to create debugfs root directory.\n");
+	}
+
+	debug_file = debugfs_create_file(heap->name, 0644,
+	                                 heap->debug_root, heap,
+	                                 &dma_heap_debug_fops);
+	if (!debug_file) {
+        char buf[256], *path;
+        path = dentry_path(heap->debug_root, buf, 256);
+        pr_err("Failed to create heap debugfs at %s/%s\n",
+               path, heap->name);
+    }
 
 	return heap;
 
