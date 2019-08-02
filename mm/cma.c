@@ -50,6 +50,46 @@ unsigned long cma_get_size(const struct cma *cma)
 	return cma->count << PAGE_SHIFT;
 }
 
+unsigned long cma_get_free_size(const struct cma *cma)
+{
+	unsigned long next_zero_bit, next_set_bit;
+	unsigned long start = 0;
+	unsigned long free_size = 0;
+
+	mutex_lock(&cma->lock);
+	for (;;) {
+		next_zero_bit = find_next_zero_bit(cma->bitmap, cma->count, start);
+		if (next_zero_bit >= cma->count)
+			break;
+		next_set_bit = find_next_bit(cma->bitmap, cma->count, next_zero_bit);
+		free_size += next_set_bit - next_zero_bit;
+		start = next_set_bit;
+	}
+	mutex_unlock(&cma->lock);
+	return free_size << PAGE_SHIFT;
+}
+
+unsigned long cma_get_largest_free_buf(const struct cma *cma)
+{
+	unsigned long next_zero_bit, next_set_bit;
+	unsigned long start = 0;
+	unsigned long free_size = 0;
+	unsigned long largest_free_buf = 0;
+
+	mutex_lock(&cma->lock);
+	for (;;) {
+		next_zero_bit = find_next_zero_bit(cma->bitmap, cma->count, start);
+		if (next_zero_bit >= cma->count)
+			break;
+		next_set_bit = find_next_bit(cma->bitmap, cma->count, next_zero_bit);
+		free_size = next_set_bit - next_zero_bit;
+		if(free_size > largest_free_buf) largest_free_buf = free_size;
+		start = next_set_bit;
+	}
+	mutex_unlock(&cma->lock);
+	return largest_free_buf << PAGE_SHIFT;
+}
+
 const char *cma_get_name(const struct cma *cma)
 {
 	return cma->name ? cma->name : "(undefined)";
