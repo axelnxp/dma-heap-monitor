@@ -145,6 +145,7 @@ static const struct of_device_id id_table_hisi_hikey_usb[] = {
 	{.compatible = "hisilicon,hikey960_usb"},
 	{}
 };
+MODULE_DEVICE_TABLE(of, id_table_hisi_hikey_usb);
 
 static struct platform_driver hisi_hikey_usb_driver = {
 	.probe = hisi_hikey_usb_probe,
